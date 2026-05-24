@@ -17,6 +17,8 @@ In this file we define `Bialgebra`s.
 
 * `Bialgebra R A`: the structure of a bialgebra on the `R`-algebra `A`;
 * `CommSemiring.toBialgebra`: a commutative semiring is a bialgebra over itself.
+* `Coalgebra.Repr.mul`: given representations of `comul x` and `comul y` in a bialgebra,
+  a representation of `comul (x * y)`.
 
 ## Implementation notes
 
@@ -212,3 +214,30 @@ variable (R) in
 lemma nontrivial [Nontrivial R] : Nontrivial A := (algebraMap_injective (R := R) _).nontrivial
 
 end Bialgebra
+
+/-! ### Representations of products -/
+
+namespace Coalgebra.Repr
+variable {R A : Type*} [CommSemiring R] [Semiring A] [Bialgebra R A]
+
+/-- Given representations of `comul x` and `comul y` in a bialgebra, build a representation
+of `comul (x * y)` indexed by the product of the two index sets. -/
+def mul {x y : A} (rx : Repr R x) (ry : Repr R y) : Repr R (x * y) where
+  ι := rx.ι × ry.ι
+  index := rx.index ×ˢ ry.index
+  left p := rx.left p.1 * ry.left p.2
+  right p := rx.right p.1 * ry.right p.2
+  eq := by
+    rw [Bialgebra.comul_mul, ← rx.eq, ← ry.eq, Finset.sum_mul_sum, Finset.sum_product]
+    simp_rw [Algebra.TensorProduct.tmul_mul_tmul]
+
+@[simp] lemma mul_index {x y : A} (rx : Repr R x) (ry : Repr R y) :
+    (rx.mul ry).index = rx.index ×ˢ ry.index := rfl
+
+@[simp] lemma mul_left {x y : A} (rx : Repr R x) (ry : Repr R y) (p : rx.ι × ry.ι) :
+    (rx.mul ry).left p = rx.left p.1 * ry.left p.2 := rfl
+
+@[simp] lemma mul_right {x y : A} (rx : Repr R x) (ry : Repr R y) (p : rx.ι × ry.ι) :
+    (rx.mul ry).right p = rx.right p.1 * ry.right p.2 := rfl
+
+end Coalgebra.Repr
