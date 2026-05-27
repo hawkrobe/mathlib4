@@ -6,7 +6,6 @@ Authors: Ali Ramsey
 module
 
 public import Mathlib.RingTheory.Bialgebra.Basic
-public import Mathlib.RingTheory.Bialgebra.Primitive
 public import Mathlib.RingTheory.Coalgebra.Convolution
 
 /-!
@@ -27,7 +26,6 @@ In this file we define `HopfAlgebra`, and provide instances for:
 * `HopfAlgebra.antipode_mul` : the antipode is an antihomomorphism: `S(ab) = S(b)S(a)`.
 * `HopfAlgebra.antipode_unique` : the antipode is uniquely determined by the underlying bialgebra
   structure.
-* `HopfAlgebra.antipode_of_isPrimitive` : the antipode sends primitive elements to their negation.
 
 ## TODO
 
@@ -247,25 +245,6 @@ theorem eq_antipode_of_mul_lTensor_comul {S : A →ₗ[R] A}
   (antipode_unique mul_antipode_rTensor_comul h).symm
 
 end Semiring
-
-section Ring
-variable {R : Type u} {A : Type v} [CommSemiring R] [Ring A] [HopfAlgebra R A] {a : A}
-
-open Coalgebra
-
-/-! ### Antipode on primitive elements -/
-
-/-- The antipode of a Hopf algebra sends primitive elements to their negation. -/
-theorem antipode_of_isPrimitive (ha : IsPrimitiveElem R a) :
-    antipode R a = -a := by
-  have key := mul_antipode_rTensor_comul_apply (R := R) a
-  rw [ha.comul_eq_tmul_one_add_one_tmul, ha.counit_eq_zero,
-    LinearMap.map_add, LinearMap.rTensor_tmul, LinearMap.rTensor_tmul,
-    antipode_one, LinearMap.map_add, LinearMap.mul'_apply,
-    LinearMap.mul'_apply, mul_one, one_mul, RingHom.map_zero] at key
-  exact eq_neg_of_add_eq_zero_left key
-
-end Ring
 
 end HopfAlgebra
 
