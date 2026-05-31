@@ -162,6 +162,13 @@ end Nonempty
 
 end Fintype
 
+/-- A finite Boolean algebra is order-isomorphic to the powerset of its atoms. -/
+noncomputable def Finite.orderIsoSetIsAtom {α : Type*} [BooleanAlgebra α] [Finite α] :
+    α ≃o Set {a : α // IsAtom a} :=
+  letI := Fintype.ofFinite α
+  letI := Fintype.toCompleteAtomicBooleanAlgebra α
+  CompleteAtomicBooleanAlgebra.toSetOfIsAtom
+
 /-! ### Concrete instances -/
 
 noncomputable instance Fin.completeLinearOrder {n : ℕ} [NeZero n] : CompleteLinearOrder (Fin n) :=
