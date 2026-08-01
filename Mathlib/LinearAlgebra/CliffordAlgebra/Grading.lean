@@ -32,6 +32,13 @@ variable (Q)
 def evenOdd (i : ZMod 2) : Submodule R (CliffordAlgebra Q) :=
   ⨆ j : { n : ℕ // ↑n = i }, LinearMap.range (ι Q) ^ (j : ℕ)
 
+/-- `evenOdd` is the coarsening of the family of powers of `(ι Q).range` along `ℕ → ZMod 2`. -/
+theorem evenOdd_eq_fiberSup (i : ZMod 2) :
+    evenOdd Q i = DirectSum.fiberSup (Nat.cast : ℕ → ZMod 2)
+      (fun n ↦ LinearMap.range (ι Q) ^ n) i := by
+  rw [DirectSum.fiberSup_eq_iSup_subtype]
+  rfl
+
 theorem one_le_evenOdd_zero : 1 ≤ evenOdd Q 0 := by
   refine le_trans ?_ (le_iSup _ ⟨0, Nat.cast_zero⟩)
   exact (pow_zero _).ge

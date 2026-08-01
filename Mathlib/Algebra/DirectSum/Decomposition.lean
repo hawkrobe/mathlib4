@@ -298,4 +298,91 @@ theorem decompose_lhom_ext {N} [AddCommMonoid N] [Module R N] ⦃f g : M →ₗ[
 
 end Module
 
+section FiberSup
+
+variable {κ : Type*} [Semiring R] [AddCommMonoid M] [Module R M]
+variable (f : ι → κ) (ℳ : ι → Submodule R M)
+
+/-- The pushforward along `f : ι → κ` of a family of submodules indexed by `ι`: the piece at
+`j : κ` is the supremum of the pieces in the fiber of `f` over `j`. A decomposition pushes
+forward to a decomposition (`DirectSum.fiberSup.decomposition`); this is the internal
+counterpart of the index-side regrouping `DirectSum.sigmaFiberAddEquiv`. -/
+def fiberSup (j : κ) : Submodule R M :=
+  ⨆ i ∈ f ⁻¹' {j}, ℳ i
+
+theorem le_fiberSup (i : ι) : ℳ i ≤ fiberSup f ℳ (f i) :=
+  le_biSup ℳ rfl
+
+theorem fiberSup_le {j : κ} {p : Submodule R M} :
+    fiberSup f ℳ j ≤ p ↔ ∀ i, f i = j → ℳ i ≤ p := by
+  simp [fiberSup, iSup_le_iff, Set.mem_preimage]
+
+theorem mem_fiberSup_of_mem {i : ι} {x : M} (hx : x ∈ ℳ i) : x ∈ fiberSup f ℳ (f i) :=
+  le_fiberSup f ℳ i hx
+
+theorem fiberSup_eq_iSup_subtype (j : κ) : fiberSup f ℳ j = ⨆ i : { i // f i = j }, ℳ i := by
+  rw [fiberSup, iSup_subtype']
+  rfl
+
+variable [DecidableEq ι] [DecidableEq κ] [Decomposition ℳ]
+
+open LinearMap in
+/-- The decomposition map into the pushforward pieces: decompose along `ℳ`, then send the
+`i` component into the `f i` summand. -/
+private def fiberSup.decomposeAux : M →ₗ[R] ⨁ j, fiberSup f ℳ j :=
+  (toModule R ι _ fun i ↦
+      lof R κ (fun j ↦ fiberSup f ℳ j) (f i) ∘ₗ Submodule.inclusion (le_fiberSup f ℳ i)) ∘ₗ
+    (decomposeLinearEquiv ℳ).toLinearMap
+
+private theorem fiberSup.decomposeAux_coe {i : ι} (x : ℳ i) :
+    fiberSup.decomposeAux f ℳ (x : M) =
+      lof R κ (fun j ↦ fiberSup f ℳ j) (f i) ⟨x, mem_fiberSup_of_mem f ℳ x.2⟩ := by
+  simp only [fiberSup.decomposeAux, LinearMap.comp_apply, LinearEquiv.coe_toLinearMap,
+    decomposeLinearEquiv_apply, decompose_coe, ← lof_eq_of R, toModule_lof]
+  rfl
+
+private theorem fiberSup.coeLinearMap_comp_decomposeAux :
+    coeLinearMap (fiberSup f ℳ) ∘ₗ fiberSup.decomposeAux f ℳ = .id := by
+  rw [fiberSup.decomposeAux, ← LinearMap.comp_assoc, ← LinearEquiv.eq_comp_toLinearMap_symm]
+  refine linearMap_ext _ fun i ↦ ?_
+  ext x
+  simp only [LinearMap.coe_comp, Function.comp_apply, lof_eq_of, LinearMap.id_comp,
+    decomposeLinearEquiv_symm_comp_lof, Submodule.subtype_apply]
+  rw [← lof_eq_of R, toModule_lof]
+  simp [lof_eq_of, coeLinearMap_of]
+
+/-- A decomposition indexed by `ι` pushes forward along `f : ι → κ` to a decomposition into
+the fiberwise suprema `fiberSup f ℳ`. -/
+@[no_expose] instance fiberSup.decomposition : Decomposition (fiberSup f ℳ) := by
+  refine .ofLinearMap _ (fiberSup.decomposeAux f ℳ)
+    (fiberSup.coeLinearMap_comp_decomposeAux f ℳ)
+    (linearMap_ext _ fun j ↦ LinearMap.ext fun z ↦ ?_)
+  have h0 : ∀ m ≠ j, fiberSup.decomposeAux f ℳ (z : M) m = 0 := by
+    intro m hm
+    rw [apply_eq_component R]
+    refine (fiberSup_le f ℳ (p := LinearMap.ker
+      (component R κ (fun j ↦ ↥(fiberSup f ℳ j)) m ∘ₗ fiberSup.decomposeAux f ℳ))).2 ?_ z.2
+    rintro i rfl x hx
+    simp only [LinearMap.mem_ker, LinearMap.comp_apply,
+      fiberSup.decomposeAux_coe f ℳ (⟨x, hx⟩ : ℳ i), component.of]
+    exact dif_neg (Ne.symm hm)
+  have hz : fiberSup.decomposeAux f ℳ (z : M) =
+      lof R κ (fun j ↦ ↥(fiberSup f ℳ j)) j (fiberSup.decomposeAux f ℳ (z : M) j) := by
+    refine DFinsupp.ext fun m ↦ ?_
+    rcases eq_or_ne m j with rfl | hm
+    · simp
+    · simp [h0 m hm, lof_eq_of, of_eq_of_ne _ _ _ hm]
+  have h1 : coeLinearMap (fiberSup f ℳ) (fiberSup.decomposeAux f ℳ (z : M)) = (z : M) :=
+    DFunLike.congr_fun (fiberSup.coeLinearMap_comp_decomposeAux f ℳ) (z : M)
+  rw [hz] at h1
+  have key : fiberSup.decomposeAux f ℳ (z : M) = lof R κ _ j z :=
+    hz.trans (congrArg _ (Subtype.ext (by simpa [lof_eq_of] using h1)))
+  simpa [lof_eq_of] using key
+
+/-- The pushforward of a decomposition is internal. -/
+theorem fiberSup.isInternal : IsInternal (fiberSup f ℳ) :=
+  Decomposition.isInternal _
+
+end FiberSup
+
 end DirectSum
